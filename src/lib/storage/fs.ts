@@ -10,11 +10,19 @@ import { createSessionState } from "../session";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "sessions");
 
+// session id 白名單：中日文字、數字、連字號,1-64 字。擋路徑穿越
+// (含 Windows 的 %5C→\ 向量);read/write 都必須先過這關。
+const ID_RE = /^[\p{L}\p{N}-]{1,64}$/u;
+function assertSafeId(id: string): void {
+  if (!ID_RE.test(id)) throw new Error("不合法的 session id");
+}
+
 function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
 }
 
 function sessionDir(id: string): string {
+  assertSafeId(id);
   return path.join(DATA_DIR, id);
 }
 

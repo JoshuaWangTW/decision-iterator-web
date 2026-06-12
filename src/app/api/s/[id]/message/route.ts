@@ -132,11 +132,10 @@ export async function POST(
               }
               toolResults.push({
                 type: "tool_result" as const,
-                // tool_result must be a separate role:user message per Anthropic spec
-                // We store it as the content array and wrap in user message below
-                id: tu.id,
+                // Anthropic API 要求 tool_use_id（非 id）；放在 role:user 訊息的 content
+                tool_use_id: tu.id,
                 content: "狀態已更新並重繪看板。",
-              } as unknown as ContentBlock);
+              });
             }
           }
 

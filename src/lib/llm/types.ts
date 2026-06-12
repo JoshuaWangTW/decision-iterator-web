@@ -12,7 +12,15 @@ export interface TextBlock {
   text: string;
 }
 
-export type ContentBlock = TextBlock | ToolUseBlock;
+export interface ToolResultBlock {
+  type: "tool_result";
+  /** Anthropic API 要求的欄位名（不是 id）；對應 tool_use 的 id */
+  tool_use_id: string;
+  content: string;
+  is_error?: boolean;
+}
+
+export type ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock;
 
 export interface TurnResult {
   stop_reason: "end_turn" | "tool_use" | "max_tokens" | string;

@@ -1,8 +1,13 @@
-"use server";
 // / — Session list + new session (mobile-first, server component + server action)
+// 注意:本檔不可在頂層放 "use server"(那會要求所有 export 都是 async 函式,
+// 與 `export const dynamic` 衝突);server action 由 createSession 內的
+// 函式級 "use server" directive 標記即可。
 import { redirect } from "next/navigation";
 import { getStorage } from "@/lib/storage";
 import type { SessionListItem } from "@/lib/schema";
+
+// production(next start)下也要每次讀最新 session 列表,不可 build 時凍結
+export const dynamic = "force-dynamic";
 
 async function createSession(formData: FormData): Promise<never> {
   "use server";

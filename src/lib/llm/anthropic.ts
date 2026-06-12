@@ -37,21 +37,20 @@ export const anthropicRunner: LLMRunner = {
     const msg = await stream.finalMessage();
 
     // Map SDK content blocks to our ContentBlock type
-    const content: ContentBlock[] = msg.content.map((block) => {
+    const content: ContentBlock[] = [];
+    for (const block of msg.content) {
       if (block.type === "text") {
-        return { type: "text" as const, text: block.text };
-      }
-      if (block.type === "tool_use") {
-        return {
+        content.push({ type: "text" as const, text: block.text });
+      } else if (block.type === "tool_use") {
+        content.push({
           type: "tool_use" as const,
           id: block.id,
           name: block.name,
           input: block.input as Record<string, unknown>,
-        };
+        });
       }
-      // Fallback for unexpected block types
-      return { type: "text" as const, text: "" };
-    });
+      // 未知 block(如 thinking)直接丟棄,不塞空 text block(回送會觸發 400)
+    }
 
     return {
       stop_reason: msg.stop_reason ?? "end_turn",
