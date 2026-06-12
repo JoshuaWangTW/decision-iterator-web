@@ -45,3 +45,5 @@ next-env.d.ts
 
 dev-stdout.log
 dev-*.log
+.dev-server.log
+.dev-*
