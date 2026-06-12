@@ -1,0 +1,848 @@
+<!-- vendored from C:\Users\User\.claude\skills\decision-iterator\assets\dashboard-template.html (schemaVersion 1.0) -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>決策迭代器 · Decision Iterator</title>
+<style>
+  :root {
+    color-scheme: dark;
+    /* 墨色(深):朝品牌墨綠微染的中性面,黃銅為唯一行動色(沉穩軍師) */
+    --bg: oklch(0.16 0.008 170); --panel: oklch(0.195 0.01 170); --panel-2: oklch(0.235 0.012 170);
+    --border: oklch(0.32 0.014 170);
+    --txt: oklch(0.93 0.006 170); --txt-dim: oklch(0.76 0.012 170); --txt-faint: oklch(0.62 0.012 170);
+    --biz: oklch(0.72 0.09 230); --career: oklch(0.74 0.09 305); --hybrid: oklch(0.74 0.1 165);
+    --open: oklch(0.62 0.012 170); --testing: oklch(0.72 0.09 230);
+    --confirmed: oklch(0.74 0.11 165); --refuted: oklch(0.7 0.15 25); --parked: oklch(0.76 0.1 90);
+    --flag: oklch(0.7 0.15 25); --accent: oklch(0.78 0.11 80); --accent-ink: oklch(0.23 0.06 80);
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    --sans: "Noto Sans TC", "Microsoft JhengHei UI", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+    --serif: "Noto Serif TC", "Source Han Serif TC", "Songti TC", PMingLiU, Georgia, serif;
+    --z-mask: 100;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      color-scheme: light;
+      /* 宣紙(淺):近零彩度的冷白,刻意避開 cream/sand 暖帶 */
+      --bg: oklch(0.965 0.004 170); --panel: oklch(0.99 0.002 170); --panel-2: oklch(0.945 0.006 170);
+      --border: oklch(0.87 0.008 170);
+      --txt: oklch(0.24 0.012 170); --txt-dim: oklch(0.42 0.012 170); --txt-faint: oklch(0.53 0.01 170);
+      --biz: oklch(0.5 0.1 235); --career: oklch(0.5 0.1 305); --hybrid: oklch(0.47 0.1 165);
+      --open: oklch(0.53 0.01 170); --testing: oklch(0.5 0.1 235);
+      --confirmed: oklch(0.5 0.11 165); --refuted: oklch(0.53 0.16 25); --parked: oklch(0.56 0.11 85);
+      --flag: oklch(0.53 0.16 25); --accent: oklch(0.55 0.12 75); --accent-ink: oklch(0.99 0.01 80);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--txt); font-family: var(--sans); font-size: 14px; line-height: 1.6; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 18px 22px 60px; }
+  button { font-family: inherit; }
+  button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ===== Header ===== */
+  header.top { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; padding: 6px 0 14px; border-bottom: 1px solid var(--border); }
+  .head-main { min-width: 0; }
+  .title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .title { font-family: var(--serif); font-size: 18px; font-weight: 700; letter-spacing: .01em; text-wrap: balance; }
+  .brand { font-size: 11px; color: var(--txt-faint); margin-top: 2px; }
+  .badge { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); white-space: nowrap; }
+  .badge.lens-business { color: var(--biz); border-color: var(--biz); }
+  .badge.lens-career { color: var(--career); border-color: var(--career); }
+  .badge.lens-hybrid { color: var(--hybrid); border-color: var(--hybrid); }
+  .spacer { flex: 1; }
+  .head-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .live { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--txt-faint); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--txt-faint); }
+  .dot.on { background: var(--confirmed); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .4 } }
+  .updated { font-size: 11px; color: var(--txt-faint); }
+  button.refresh { background: var(--panel-2); color: var(--txt); border: 1px solid var(--border); border-radius: 7px; padding: 5px 11px; cursor: pointer; font-size: 12px; }
+  button.refresh:hover { border-color: var(--accent); }
+  button.refresh.primary { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  button.refresh.primary:hover { background: color-mix(in oklab, var(--accent) 12%, var(--panel)); }
+  button.helpbtn { background: none; color: var(--txt-dim); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 12px; }
+  button.helpbtn:hover { color: var(--txt); border-color: var(--txt-faint); }
+
+  /* ===== 旅程條(3 站 × 8 小步) ===== */
+  .journey { display: flex; gap: 10px; margin: 16px 0; }
+  .station { flex: 1; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; transition: border-color 200ms, background 200ms; }
+  .station.cur { border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); background: color-mix(in oklab, var(--accent) 7%, var(--panel)); }
+  .station.done { border-color: color-mix(in oklab, var(--confirmed) 35%, var(--border)); }
+  .st-name { font-family: var(--serif); font-size: 15px; font-weight: 700; }
+  .station.cur .st-name { color: var(--accent); }
+  .station.done .st-name { color: var(--confirmed); }
+  .st-sub { font-size: 11px; color: var(--txt-faint); margin-top: 2px; }
+  .st-dots { display: flex; gap: 16px; margin-top: 6px; }
+  .dotwrap { position: relative; padding-top: 16px; }
+  .jdot { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: transform 200ms, background 200ms; }
+  .jdot.done { background: var(--confirmed); }
+  .jdot.cur { background: var(--accent); transform: scale(1.5); }
+  .here { position: absolute; top: 0; left: -4px; font-size: 10px; color: var(--accent); white-space: nowrap; letter-spacing: .5px; }
+  @media (max-width: 560px) { .journey { flex-direction: column; } }
+
+  /* ===== Hero 行動卡(頁面主角):黃銅洗面 + 襯線主句,全頁唯一高權重卡 ===== */
+  .hero { border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); border-radius: 10px; background: color-mix(in oklab, var(--accent) 7%, var(--panel)); padding: 20px; margin: 20px 0; animation: heroIn 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+  @keyframes heroIn { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
+  .eyebrow { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 1.5px; }
+  .hero-main { font-family: var(--serif); font-size: 22px; font-weight: 900; margin-top: 6px; line-height: 1.45; text-wrap: balance; }
+  .hero-why { font-size: 13px; color: var(--txt-dim); margin-top: 6px; }
+  .hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .hero-micro { font-size: 11px; color: var(--txt-faint); margin-top: 14px; }
+
+  /* ===== 複製 chip ===== */
+  button.chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; background: var(--panel-2); color: var(--txt); border: 1px solid var(--border); border-radius: 999px; padding: 7px 12px; font-size: 13px; cursor: pointer; text-align: left; transition: border-color 150ms, background 150ms; }
+  button.chip:hover { border-color: var(--accent); }
+  button.chip.copied { border-color: var(--confirmed); color: var(--confirmed); }
+  button.chip.mono .ct { font-family: var(--mono); font-size: 12px; }
+  .chip .ci { flex: none; }
+  .chip .ct { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  button.copy-mini { flex: none; background: none; border: 1px solid var(--border); color: var(--txt-dim); border-radius: 6px; padding: 2px 7px; font-size: 12px; cursor: pointer; }
+  button.copy-mini:hover { border-color: var(--accent); color: var(--accent); }
+  button.copy-mini.copied { border-color: var(--confirmed); color: var(--confirmed); }
+
+  /* ===== 引擎提醒:朱砂微染列,行首 ⚠ 記號(無側色條) ===== */
+  .flags-ok { font-size: 12px; color: var(--confirmed); background: color-mix(in oklab, var(--confirmed) 8%, var(--panel)); border: 1px solid color-mix(in oklab, var(--confirmed) 28%, var(--border)); border-radius: 8px; padding: 9px 14px; margin-top: 16px; }
+  details.panel.flagsbox { border-color: color-mix(in oklab, var(--flag) 30%, var(--border)); }
+  .flags-sub { font-size: 11px; color: var(--txt-faint); margin-bottom: 8px; }
+  .flag { display: flex; align-items: flex-start; gap: 8px; background: color-mix(in oklab, var(--flag) 7%, var(--panel)); border: 1px solid color-mix(in oklab, var(--flag) 22%, var(--border)); border-radius: 7px; padding: 7px 11px; font-size: 12px; color: var(--txt-dim); margin-bottom: 6px; }
+  .flag .fmark { flex: none; color: var(--flag); font-weight: 700; }
+  .flag .ftxt { flex: 1; }
+
+  /* ===== 收合面板(原生 details) ===== */
+  details.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-top: 16px; }
+  details.panel > summary { list-style: none; cursor: pointer; padding: 12px 16px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; user-select: none; }
+  details.panel > summary::-webkit-details-marker { display: none; }
+  details.panel > summary::before { content: "▸"; flex: none; font-size: 11px; color: var(--txt-faint); transition: transform 200ms; }
+  details.panel[open] > summary::before { transform: rotate(90deg); }
+  details.panel > summary:focus-visible { outline-offset: -2px; border-radius: 10px; }
+  .pbody { padding: 2px 16px 16px; }
+  .faint { font-size: 12px; font-weight: 400; color: var(--txt-faint); }
+  .empty { color: var(--txt-faint); font-size: 12px; font-style: italic; }
+  .empty-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 2px 0; }
+
+  /* ===== frame ===== */
+  .frame-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
+  .frame-grid dt { color: var(--txt-faint); font-size: 12px; white-space: nowrap; cursor: help; }
+  .frame-grid dd { margin: 0; }
+  .frame-grid dd.decision { font-weight: 600; color: var(--accent); }
+  .frame-grid dd.raw { color: var(--txt-faint); font-size: 12px; }
+  .frame-raw { font-size: 12px; color: var(--txt-faint); margin-top: 8px; }
+
+  /* ===== 問題地圖 ===== */
+  ul.tree, ul.tree ul { list-style: none; margin: 0; padding: 0; }
+  ul.tree ul { margin-left: 16px; border-left: 1px dashed color-mix(in oklab, var(--border) 75%, transparent); padding-left: 14px; }
+  /* 節點為「行」不是卡:行首狀態記號上色,無框無側條 */
+  .node { display: flex; align-items: flex-start; gap: 8px; padding: 5px 4px; margin: 2px 0; border-radius: 6px; }
+  .node:hover { background: color-mix(in oklab, var(--panel-2) 60%, transparent); }
+  .node .sg { flex: none; width: 15px; text-align: center; font-size: 12px; line-height: 1.7; font-weight: 700; }
+  .node .nid { font-family: var(--mono); font-size: 10px; color: var(--txt-faint); padding-top: 3px; }
+  .node .nbody { flex: 1; min-width: 0; }
+  .node .nlabel { font-size: 13px; }
+  .node .nmeta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 3px; align-items: center; }
+  .node.s-open .sg { color: var(--open); }
+  .node.s-testing .sg { color: var(--testing); }
+  .node.s-confirmed .sg { color: var(--confirmed); }
+  .node.s-refuted .sg { color: var(--refuted); }
+  .node.s-refuted .nlabel { text-decoration: line-through; color: var(--txt-faint); }
+  .node.s-parked .sg { color: var(--parked); }
+  .node.s-parked { opacity: .72; }
+  .pill { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border); color: var(--txt-dim); white-space: nowrap; }
+  .pill.st-open { color: var(--open); border-color: var(--open); }
+  .pill.st-testing { color: var(--testing); border-color: var(--testing); }
+  .pill.st-confirmed { color: var(--confirmed); border-color: var(--confirmed); }
+  .pill.st-refuted { color: var(--refuted); border-color: var(--refuted); }
+  .pill.st-parked { color: var(--parked); border-color: var(--parked); }
+  .pill.lens-business { color: var(--biz); border-color: color-mix(in oklab, var(--biz) 45%, var(--border)); }
+  .pill.lens-career { color: var(--career); border-color: color-mix(in oklab, var(--career) 45%, var(--border)); }
+  .pill.lens-hybrid { color: var(--hybrid); border-color: color-mix(in oklab, var(--hybrid) 45%, var(--border)); }
+  .score { font-family: var(--mono); font-size: 10px; color: var(--accent); cursor: help; }
+  .ev { font-size: 11px; color: var(--txt-faint); }
+
+  /* ===== 驗證進度 ===== */
+  /* 進度欄為「清單」不是卡中卡:欄標下劃線 + 行間髮絲線 + 行首色點 */
+  .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  @media (max-width: 720px) { .kanban { grid-template-columns: 1fr 1fr; } }
+  .col { min-height: 48px; }
+  .col h3 { font-size: 11px; margin: 0 0 6px; letter-spacing: .5px; display: flex; justify-content: space-between; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+  .col.k-open { --kc: var(--open); }
+  .col.k-testing { --kc: var(--testing); }
+  .col.k-confirmed { --kc: var(--confirmed); }
+  .col.k-refuted { --kc: var(--refuted); }
+  .col h3 { color: var(--kc); }
+  .kcard { display: flex; align-items: baseline; gap: 6px; padding: 5px 1px; font-size: 12px; border-bottom: 1px solid color-mix(in oklab, var(--border) 55%, transparent); }
+  .kcard::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--kc); transform: translateY(-1px); }
+  .kcard .kid { font-family: var(--mono); font-size: 10px; color: var(--txt-faint); }
+
+  /* ===== 目前的結論 ===== */
+  /* 結論為「條目」不是卡:條間髮絲線分隔 */
+  .insight { padding: 10px 2px; }
+  .insight + .insight { border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent); }
+  .insight .finding { font-weight: 600; }
+  .insight .iwhy { font-size: 12px; color: var(--txt-dim); margin-top: 3px; }
+  .insight .imag { font-size: 12px; color: var(--txt-dim); margin-top: 2px; }
+  .insight b { color: var(--txt); }
+  .insight .from { font-family: var(--mono); font-size: 11px; color: var(--txt-faint); }
+
+  /* ===== 選項與決定 ===== */
+  .tablewrap { overflow-x: auto; }
+  table.opts { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.opts th, table.opts td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.opts th { color: var(--txt-faint); font-weight: 600; font-size: 11px; cursor: help; }
+  table.opts tr.chosen td { background: color-mix(in oklab, var(--confirmed) 8%, transparent); }
+  table.opts tr.chosen td:first-child { font-weight: 600; }
+  .chosen-tag { color: var(--confirmed); font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .nextsteps { margin-top: 12px; }
+  .ns-title { font-size: 13px; font-weight: 700; color: var(--txt-dim); margin-bottom: 4px; }
+  .step { display: flex; gap: 8px; font-size: 12px; padding: 4px 0; border-bottom: 1px dashed var(--border); }
+  .step .who { color: var(--biz); font-weight: 600; min-width: 90px; }
+  .step .when { color: var(--txt-faint); margin-left: auto; font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+
+  /* ===== 思考歷程 ===== */
+  .timeline { position: relative; padding-left: 18px; }
+  .timeline::before { content: ""; position: absolute; left: 5px; top: 4px; bottom: 4px; width: 2px; background: var(--border); }
+  .tl { position: relative; padding: 5px 0 5px 4px; font-size: 12px; }
+  .tl::before { content: ""; position: absolute; left: -16px; top: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--txt-faint); border: 2px solid var(--bg); }
+  .tl.t-inject::before { background: var(--accent); }
+  .tl.t-repivot::before { background: var(--refuted); }
+  .tl.t-branch::before { background: var(--career); }
+  .tl.t-reprioritize::before { background: var(--testing); }
+  .tl.t-switch-lens::before { background: var(--hybrid); }
+  .tl.t-phase-change::before { background: var(--confirmed); }
+  .tl .tt { font-family: var(--mono); font-size: 10px; color: var(--txt-faint); }
+  .tl .tg { font-size: 10px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--border); color: var(--txt-dim); margin-right: 6px; }
+  .tl.t-inject .tg { color: var(--accent); border-color: var(--accent); }
+  .tl.t-repivot .tg { color: var(--refuted); border-color: var(--refuted); }
+
+  footer { margin-top: 28px; color: var(--txt-faint); font-size: 11px; text-align: center; }
+
+  /* ===== Modal ===== */
+  .mask { position: fixed; inset: 0; background: oklch(0.13 0.01 170 / .62); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: var(--z-mask); }
+  .mask[hidden] { display: none; }
+  .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; width: 100%; max-width: 520px; max-height: 86vh; overflow: auto; padding: 20px 22px; outline: none; position: relative; }
+  .modal.wide { max-width: 560px; }
+  .modal h3 { margin: 0 0 12px; font-family: var(--serif); font-size: 18px; text-wrap: balance; }
+  .modal .mx { position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--txt-faint); font-size: 16px; cursor: pointer; padding: 4px 8px; }
+  .modal .mx:hover { color: var(--txt); }
+  .ob-item { margin: 10px 0; font-size: 14px; }
+  .ob-item b { color: var(--accent); }
+  .ob-cta { margin-top: 16px; }
+  button.primary-cta { background: var(--accent); color: var(--accent-ink); font-weight: 700; border: none; border-radius: 8px; padding: 9px 18px; font-size: 14px; cursor: pointer; }
+  button.primary-cta:hover { filter: brightness(1.08); }
+  .ob-hint { font-size: 11px; color: var(--txt-faint); margin-top: 8px; }
+  .help-sec { margin: 14px 0; }
+  .help-sec h4 { margin: 0 0 8px; font-size: 14px; color: var(--accent); }
+  .help-line { font-size: 13px; margin: 6px 0; color: var(--txt-dim); }
+  .help-line b { color: var(--txt); }
+  .say-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
+  .say-k { flex: none; font-size: 12px; color: var(--txt-faint); min-width: 58px; }
+
+  /* 動效以狀態回饋為限;reduced-motion 一律即時 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="head-main">
+      <div class="title-row">
+        <span class="title" id="title">–</span>
+        <span class="badge" id="lensBadge">–</span>
+      </div>
+      <div class="brand">決策迭代器 Decision Iterator</div>
+    </div>
+    <span class="spacer"></span>
+    <div class="head-tools">
+      <span class="live"><span class="dot" id="liveDot"></span><span id="liveTxt">手動模式</span></span>
+      <span class="updated" id="updated">–</span>
+      <button type="button" class="refresh primary" id="refreshBtn" title="Claude 說看板更新後,按這顆載入最新狀態" onclick="manualRefresh()">↻ 載入最新</button>
+      <button type="button" class="helpbtn" onclick="showModal('helpMask')">❓ 怎麼用</button>
+    </div>
+  </header>
+
+  <section class="journey" id="journey"></section>
+
+  <section class="hero" id="hero"></section>
+
+  <div id="flagsArea"></div>
+
+  <details class="panel" id="p-frame">
+    <summary><span class="s-txt" id="sumFrame">🎯 這次要決定什麼</span></summary>
+    <div class="pbody" id="bodyFrame"></div>
+  </details>
+
+  <details class="panel" id="p-tree">
+    <summary><span class="s-txt" id="sumTree">🗺 問題地圖</span></summary>
+    <div class="pbody"><ul class="tree" id="bodyTree"></ul></div>
+  </details>
+
+  <details class="panel" id="p-kanban">
+    <summary><span class="s-txt" id="sumKanban">📊 驗證進度</span></summary>
+    <div class="pbody" id="bodyKanban"></div>
+  </details>
+
+  <details class="panel" id="p-insights">
+    <summary><span class="s-txt" id="sumInsights">💡 目前的結論</span></summary>
+    <div class="pbody" id="bodyInsights"></div>
+  </details>
+
+  <details class="panel" id="p-decision">
+    <summary><span class="s-txt" id="sumDecision">⚖ 選項與決定</span></summary>
+    <div class="pbody" id="bodyDecision"></div>
+  </details>
+
+  <details class="panel" id="p-timeline">
+    <summary><span class="s-txt" id="sumTimeline">🧾 思考歷程</span></summary>
+    <div class="pbody"><div class="timeline" id="bodyTimeline"></div></div>
+  </details>
+
+  <footer>看板為唯讀視圖:思考與操作都在 Claude Code 對話中進行 · session-state.json 是唯一事實來源</footer>
+</div>
+
+<div class="mask" id="onboardMask" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="歡迎:這是你的決策看板" tabindex="-1">
+    <h3>歡迎:這是你的決策看板</h3>
+    <div class="ob-item"><b>它是什麼</b>:你和 Claude 討論決策時,所有思路都會畫在這裡:問題怎麼拆、哪些猜測驗過了、結論是什麼。</div>
+    <div class="ob-item"><b>你不用在這裡操作</b>:看板是唯讀的。提想法、給證據、做決定,全部回到 Claude Code 的對話裡用說的就好。</div>
+    <div class="ob-item"><b>跟著最上面的卡片走</b>:最上面那張卡永遠告訴你『現在只要做這一件事』。點卡片裡的句子複製、貼給 Claude,看板就會往前長。</div>
+    <div class="ob-cta">
+      <button type="button" class="primary-cta" onclick="hideModal('onboardMask')">知道了,開始</button>
+      <div class="ob-hint">想再看一次?點右上角的「❓ 怎麼用」。</div>
+    </div>
+  </div>
+</div>
+
+<div class="mask" id="helpMask" hidden>
+  <div class="modal wide" role="dialog" aria-modal="true" aria-label="怎麼用" tabindex="-1">
+    <button type="button" class="mx" onclick="hideModal('helpMask')" aria-label="關閉">✕</button>
+    <h3>❓ 怎麼用</h3>
+    <div class="help-sec">
+      <h4>這個工具怎麼運作</h4>
+      <div class="help-line"><b>你說 → Claude 記 → 看板畫</b></div>
+      <div class="help-line">1. 你在 Claude Code 裡用『說的』推進決策:提想法、給資訊、隨時插話。</div>
+      <div class="help-line">2. Claude 把每一步思考寫進狀態檔,並更新這個看板。</div>
+      <div class="help-line">3. 看板永遠告訴你:現在在哪、下一步只要做什麼。你不需要在看板上操作任何東西。</div>
+    </div>
+    <div class="help-sec">
+      <h4>隨時可以打斷:對 Claude 說這些就行</h4>
+      <div class="say-row"><span class="say-k">加新想法</span><button type="button" class="chip" data-copy="我突然想到一個可能:___"><span class="ci">📋</span><span class="ct">我突然想到一個可能:___</span></button></div>
+      <div class="say-row"><span class="say-k">改方向</span><button type="button" class="chip" data-copy="問題其實不是這個,重點是:___"><span class="ci">📋</span><span class="ct">問題其實不是這個,重點是:___</span></button></div>
+      <div class="say-row"><span class="say-k">調順序</span><button type="button" class="chip" data-copy="先別管那條,先看『___』"><span class="ci">📋</span><span class="ct">先別管那條,先看『___』</span></button></div>
+      <div class="say-row"><span class="say-k">拆細</span><button type="button" class="chip" data-copy="『___』其實包含兩個子問題:___ 和 ___"><span class="ci">📋</span><span class="ct">『___』其實包含兩個子問題:___ 和 ___</span></button></div>
+      <div class="say-row"><span class="say-k">換視角</span><button type="button" class="chip" data-copy="也從職涯/生意的角度幫我看這題"><span class="ci">📋</span><span class="ct">也從職涯/生意的角度幫我看這題</span></button></div>
+      <div class="say-row"><span class="say-k">回報結果</span><button type="button" class="chip" data-copy="『___』我驗過了,結果是:___"><span class="ci">📋</span><span class="ct">『___』我驗過了,結果是:___</span></button></div>
+      <div class="say-row"><span class="say-k">看不懂</span><button type="button" class="chip" data-copy="白話解釋一下看板上的『___』是什麼意思?"><span class="ci">📋</span><span class="ct">白話解釋一下看板上的『___』是什麼意思?</span></button></div>
+    </div>
+    <div class="help-sec">
+      <h4>看板怎麼更新</h4>
+      <div class="help-line"><b>即時同步中</b> = 你開著本機小伺服器,看板每 2 秒自動更新。</div>
+      <div class="help-line"><b>手動模式</b> = 你是直接雙擊打開檔案。Claude 說『看板已更新』後,按右上角的「↻ 載入最新」。</div>
+      <div class="help-line">想要自動更新:在 session 資料夾執行下面指令,然後開 http://localhost:8799/dashboard.html</div>
+      <div class="say-row"><button type="button" class="chip mono" data-copy="python -m http.server 8799"><span class="ci">📋</span><span class="ct">python -m http.server 8799</span></button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 狀態注入點:render.mjs 會把下行的占位符換成 session-state.json 內容 =====
+const EMBEDDED_STATE = __STATE__;
+let lastStamp = null;
+
+// ===== 純邏輯區(常數與純函式,無 DOM 依賴)=====
+const PHASES = [
+  { key: "frame",       n: 0, zh: "框定", en: "FRAME",       hint: "把煩惱翻成一個明確要做的決定" },
+  { key: "decompose",   n: 1, zh: "拆解", en: "DECOMPOSE",   hint: "把大問題拆成可驗證的小猜測" },
+  { key: "prioritize",  n: 2, zh: "排序", en: "PRIORITIZE",  hint: "決定先驗哪一條" },
+  { key: "test",        n: 3, zh: "驗證", en: "TEST",        hint: "替最高優先的猜測找證據" },
+  { key: "converge",    n: 4, zh: "收斂", en: "CONVERGE",    hint: "把發現收成 1–3 條結論" },
+  { key: "decide",      n: 5, zh: "決策", en: "DECIDE",      hint: "攤開選項、比較取捨、選一條路" },
+  { key: "communicate", n: 6, zh: "交付", en: "COMMUNICATE", hint: "把決定說成別人聽得懂的一段話" },
+  { key: "iterate",     n: 7, zh: "迭代", en: "ITERATE",     hint: "記錄結果,開下一輪" }
+];
+const STATIONS = [
+  { name: "想清楚", sub: "把煩惱變成明確的問題地圖", phases: [0, 1, 2] },
+  { name: "找證據", sub: "一條條驗證,收出結論",     phases: [3, 4] },
+  { name: "做決定", sub: "選路、說清楚、回頭看",     phases: [5, 6, 7] }
+];
+const STATUS_TXT = { open: "待驗證", testing: "驗證中", confirmed: "✓ 成立", refuted: "✗ 不成立", parked: "⏸ 先擱置" };
+const TYPE_TXT = { hypothesis: "猜測", metric: "指標", experiment: "實驗", "sub-question": "子問題" };
+const TYPE_TITLE = { hypothesis: "假設 hypothesis", metric: "metric", experiment: "experiment", "sub-question": "sub-question" };
+const LENS_TXT = { business: "生意", career: "職涯", hybrid: "生意×職涯" };
+const TL_TXT = { "phase-change": "階段推進", inject: "新想法", repivot: "重新框定", reprioritize: "調整優先", branch: "拆細", "switch-lens": "換視角", note: "註記" };
+const SG = { open: "○", testing: "◐", confirmed: "✓", refuted: "✕", parked: "⊝" }; // 節點行首狀態記號
+
+// 預設展開 = f(當前 phase)。引擎提醒面板不在此表,由紅旗數決定(與 phase 無關)。
+const OPEN_BY_PHASE = {
+  frame:       ["p-frame"],
+  decompose:   ["p-tree"],
+  prioritize:  ["p-tree"],
+  test:        ["p-kanban"],
+  converge:    ["p-insights", "p-kanban"],
+  decide:      ["p-decision", "p-insights"],
+  communicate: ["p-decision"],
+  iterate:     ["p-timeline", "p-decision"]
+};
+const PANEL_IDS = ["p-frame", "p-tree", "p-kanban", "p-insights", "p-decision", "p-timeline"];
+
+// Hero 9 組文案(逐字稿,勿改寫)
+const DECKS = {
+  FRAME: {
+    main: "先把煩惱變成一個明確的決定",
+    why: "還不急著找答案。先說清楚:要決定什麼、誰來決定、押錯會怎樣、怎樣算成功。",
+    chips: [
+      "我想處理的問題是:___。幫我把它框定成一個明確的決策。",
+      "這個決定如果一直拖著,最壞會發生:___。",
+      "對我來說,怎樣的結果算成功:___。"
+    ]
+  },
+  DECOMPOSE: {
+    main: "把大問題拆成幾條可以驗證的猜測",
+    why: "先畫地圖、再找證據,不然查到的資料只會更亂。Claude 會幫你拆,你只要說開始。",
+    chips: [
+      "幫我把這個決策拆成一棵假設樹,列出關鍵猜測。",
+      "我自己猜,關鍵可能在:___。把它放進地圖。",
+      "有沒有我沒想到的角度?幫我補上。"
+    ]
+  },
+  PRIORITIZE: {
+    main: "決定先驗證哪一條",
+    why: "不用每條都查,挑影響大、又好驗證的先動手。",
+    chips: [
+      "幫我替這些猜測排優先順序,說明為什麼這樣排。",
+      "我覺得『{{topLabel}}』最關鍵,先驗它。",
+      "哪一條最便宜就能驗?先做那條。"
+    ]
+  },
+  TEST: {
+    main: "找證據,驗證『{{topLabel}}』",
+    why: "這是目前優先分最高的猜測(▲{{topScore}})。把你手上的事實告訴 Claude,或請它設計怎麼驗。",
+    chips: [
+      "我們來驗『{{topLabel}}』。要用什麼證據才能裁決?",
+      "關於這條,我知道的事實是:___。",
+      "我沒有資料,幫我設計一個低成本的驗證方法。",
+      "先跳過這條,換下一條驗。"
+    ]
+  },
+  JUDGE: {
+    main: "補上證據,裁決『{{testingLabel}}』",
+    why: "有 {{testingCount}} 條猜測卡在驗證中。把結果說給 Claude,讓它標成『成立』或『不成立』。",
+    chips: [
+      "『{{testingLabel}}』我驗完了,結果是:___。",
+      "這條驗不下去,原因是:___。先擱置它。",
+      "目前的證據夠裁決了嗎?還缺什麼?"
+    ]
+  },
+  CONVERGE: {
+    main: "把驗完的發現收成結論",
+    why: "已經有 {{settledCount}} 條猜測有了裁決。把它們收斂成 1–3 條結論,每條都要講得出『所以呢?』",
+    chips: [
+      "幫我把目前的發現收斂成結論,每條附『所以呢』和影響有多大。",
+      "我自己的讀法是:___。你同意嗎?挑戰我。"
+    ]
+  },
+  DECIDE: {
+    main: "攤開選項,選一條路",
+    why: "結論有了,該做決定了。好的決定一定有取捨:選了什麼,就等於放棄了什麼。",
+    chips: [
+      "根據目前結論,幫我列 2–3 個選項,各自的代價、效果、風險。",
+      "我傾向『___』。幫我壓力測試:它會在哪裡出錯?",
+      "就決定:___。幫我記下來,加上退出條件。"
+    ]
+  },
+  COMMUNICATE: {
+    main: "把決定說成別人聽得懂的一段話",
+    why: "你已選定:『{{chosenLabel}}』。接著整理成『結論先講』的版本,要說服誰,就講給誰聽。",
+    chips: [
+      "幫我把這個決定整理成一頁式說法:結論先講、三個支撐、下一步。",
+      "我要講給 ___ 聽。幫我預想他會挑戰什麼。",
+      "執行開始後,我們多久回來檢查一次?"
+    ]
+  },
+  ITERATE: {
+    main: "回頭看:結果如何,下一輪驗什麼",
+    why: "決策不是終點。把實際結果記回來,地圖會告訴你下一輪該驗什麼。",
+    chips: [
+      "上次的決定執行了,結果是:___。幫我記錄並更新地圖。",
+      "情況變了:___。需要重新框定嗎?",
+      "開下一輪:現在最該驗證的是哪一條?"
+    ]
+  }
+};
+
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const score = p => p && p.cost ? +(((p.impact * p.likelihood) / p.cost).toFixed(2)) : 0;
+// 以 codepoint 截斷,避免切到 emoji 代理對
+const cut = (s, n) => { const str = String(s == null ? "" : s); const a = Array.from(str); return a.length > n ? a.slice(0, n).join("") + "…" : str; };
+
+// 插值 token 的來源(全部由狀態前端衍生,不動 schema)
+function deckContext(st) {
+  const ns = st.nodes || [];
+  const open = ns.filter(n => n.status === "open" && n.type !== "metric")
+    .sort((a, b) => score(b.priority) - score(a.priority));
+  const testing = ns.filter(n => n.status === "testing");
+  const settled = ns.filter(n => n.status === "confirmed" || n.status === "refuted");
+  return {
+    topLabel: open.length ? open[0].label : "",
+    topScore: open.length ? score(open[0].priority) : 0,
+    testingLabel: testing.length ? testing[0].label : "",
+    testingCount: testing.length,
+    settledCount: settled.length,
+    chosenLabel: (st.decision && st.decision.chosen) || ""
+  };
+}
+
+// Hero deck 選擇規則 R1–R8,依序命中即停。
+// R8 = fallback:R1–R7 皆不命中時,一律顯示 ITERATE deck。
+// R3 只在 phase 尚未推進到 decide/communicate/iterate 時適用:
+// 一旦明確走到「做決定」站,Hero 以決策為主軸,不把使用者拉回驗證
+// (殘餘的待驗節點屬下一輪迭代的範圍;比照 R2.5 用 phase 消歧的先例)。
+function pickDeck(st) {
+  const ns = st.nodes || [];
+  const open = ns.filter(n => n.status === "open" && n.type !== "metric");
+  const testing = ns.filter(n => n.status === "testing");
+  const settled = ns.filter(n => n.status === "confirmed" || n.status === "refuted");
+  const insights = st.insights || [];
+  const chosen = (st.decision && st.decision.chosen) || "";
+  const late = st.phase === "decide" || st.phase === "communicate" || st.phase === "iterate";
+  if (!st.frame || !st.frame.decision) return "FRAME";                                    // R1
+  if (!ns.length) return "DECOMPOSE";                                                     // R2
+  if (st.phase === "prioritize" && open.length && !testing.length) return "PRIORITIZE";   // R2.5
+  if (open.length && !testing.length && !late) return "TEST";                             // R3
+  if (testing.length) return "JUDGE";                                                     // R4
+  if (settled.length >= 2 && !insights.length) return "CONVERGE";                         // R5
+  if (insights.length && !chosen) return "DECIDE";                                        // R6
+  if (chosen && st.phase !== "iterate") return "COMMUNICATE";                             // R7
+  return "ITERATE";                                                                       // R8
+}
+
+// 插值:label 類 token 進主句時截 28 字(title 帶全文),進 chip 時用全文
+function fillTokens(text, cx, truncLabels) {
+  return String(text).replace(/\{\{(\w+)\}\}/g, (m, k) => {
+    let v = cx[k] == null ? "" : String(cx[k]);
+    if (truncLabels && (k === "topLabel" || k === "testingLabel" || k === "chosenLabel")) v = cut(v, 28);
+    return v;
+  });
+}
+
+// 點擊即複製的 chip(顯示截 46 字,title 與複製內容一律全文)
+function chipHTML(full, mono) {
+  const disp = cut(full, 46);
+  return `<button type="button" class="chip${mono ? " mono" : ""}" data-copy="${esc(full)}"${disp !== full ? ` title="${esc(full)}"` : ""}><span class="ci">📋</span><span class="ct">${esc(disp)}</span></button>`;
+}
+// ===== 純邏輯區結束 =====
+
+function emptyCTA(text, chip) {
+  return `<div class="empty-cta"><span class="empty">${esc(text)}</span>${chipHTML(chip)}</div>`;
+}
+
+function renderHeader(st) {
+  document.getElementById("title").textContent = (st.session && st.session.title) || "未命名 session";
+  const lens = st.lens || "business";
+  const lb = document.getElementById("lensBadge");
+  lb.className = "badge lens-" + lens;
+  lb.textContent = "視角:" + (LENS_TXT[lens] || lens);
+  document.getElementById("updated").textContent = "更新 " + ((st.session && st.session.updatedAt) || "").replace("T", " ").slice(0, 16);
+}
+
+function renderJourney(st) {
+  const idx = Math.max(0, PHASES.findIndex(p => p.key === st.phase));
+  const curStation = STATIONS.findIndex(s => s.phases.includes(idx));
+  document.getElementById("journey").innerHTML = STATIONS.map((s, si) => {
+    const cls = si === curStation ? "cur" : (si < curStation ? "done" : "");
+    const dots = s.phases.map(pi => {
+      const p = PHASES[pi];
+      const dcls = pi === idx ? "cur" : (pi < idx ? "done" : "future");
+      const t = `PHASE ${p.n} ${p.zh} ${p.en} · ${p.hint}`;
+      return `<span class="dotwrap">${pi === idx ? `<span class="here">你在這裡</span>` : ""}<span class="jdot ${dcls}" title="${esc(t)}"></span></span>`;
+    }).join("");
+    return `<div class="station ${cls}"><div class="st-name">${esc(s.name)}${si < curStation ? " ✓" : ""}</div><div class="st-sub">${esc(s.sub)}</div><div class="st-dots">${dots}</div></div>`;
+  }).join("");
+}
+
+function renderHero(st) {
+  const cx = deckContext(st);
+  const key = pickDeck(st);
+  const d = DECKS[key];
+  const mainFull = fillTokens(d.main, cx, false);
+  const mainDisp = fillTokens(d.main, cx, true);
+  const why = fillTokens(d.why, cx, false);
+  const hero = document.getElementById("hero");
+  hero.dataset.deck = key;
+  hero.innerHTML = `
+    <div class="eyebrow">現在只要做這一件事</div>
+    <div class="hero-main"${mainDisp !== mainFull ? ` title="${esc(mainFull)}"` : ""}>${esc(mainDisp)}</div>
+    <div class="hero-why">${esc(why)}</div>
+    <div class="hero-chips">${d.chips.map(c => chipHTML(fillTokens(c, cx, false))).join("")}</div>
+    <div class="hero-micro">點句子複製 → 貼到 Claude Code 的對話框。這個頁面只是儀表板,所有操作都在對話裡完成。</div>`;
+}
+
+function renderFlags(st) {
+  const f = st.redFlags || [];
+  const area = document.getElementById("flagsArea");
+  if (!f.length) {
+    area.innerHTML = `<div class="flags-ok">✅ 目前沒有要提醒的,思考路徑健康。</div>`;
+    return;
+  }
+  area.innerHTML = `<details class="panel flagsbox" id="p-flags" open>
+    <summary><span class="s-txt">⚠ 引擎提醒 <span class="faint">${f.length} 筆</span></span></summary>
+    <div class="pbody">
+      <div class="flags-sub">這些是常見的決策陷阱,引擎發現你可能踩到了。</div>
+      ${f.map(x => `<div class="flag"><span class="fmark">⚠</span><span class="ftxt">${esc(x)}</span><button type="button" class="copy-mini" data-copy="${esc("我們來處理這個提醒:" + x)}" title="複製這句,貼給 Claude">📋</button></div>`).join("")}
+    </div>
+  </details>`;
+}
+
+function renderFrame(st) {
+  const f = st.frame || {};
+  document.getElementById("sumFrame").textContent = f.decision
+    ? "🎯 這次要決定:" + cut(f.decision, 40)
+    : "🎯 這次要決定什麼 · 尚未框定";
+  const body = document.getElementById("bodyFrame");
+  if (!f.decision) {
+    body.innerHTML = emptyCTA("還沒框定。對 Claude 說:", "我想處理的問題是:___。幫我把它框定成一個明確的決策。")
+      + (f.rawAsk ? `<div class="frame-raw">你最初的問題:${esc(f.rawAsk)}</div>` : "");
+    return;
+  }
+  body.innerHTML = `<dl class="frame-grid">
+    <dt title="決策 decision">要做的決定</dt><dd class="decision">${esc(f.decision)}</dd>
+    <dt title="決策者/why owner">誰來決定・為什麼重要</dt><dd>${esc(f.owner) || "–"}</dd>
+    <dt title="stakes">押錯的代價</dt><dd>${esc(f.stakes) || "–"}</dd>
+    <dt title="成功標準 successCriteria">怎樣算成功</dt><dd>${esc(f.successCriteria) || "–"}</dd>
+    <dt title="原始請求 rawAsk">你最初的問題</dt><dd class="raw">${esc(f.rawAsk) || "–"}</dd>
+  </dl>`;
+}
+
+function nodeHTML(n, childrenMap) {
+  const sc = score(n.priority);
+  const ev = (n.evidence || []).length;
+  const kids = childrenMap[n.id] || [];
+  return `<li>
+    <div class="node s-${esc(n.status)}">
+      <span class="sg" title="${esc(STATUS_TXT[n.status] || n.status)}">${SG[n.status] || "○"}</span>
+      <span class="nid">${esc(n.id)}</span>
+      <div class="nbody">
+        <div class="nlabel">${esc(n.label)}</div>
+        <div class="nmeta">
+          <span class="pill lens-${esc(n.lens)}" title="${esc(n.lens)}">${LENS_TXT[n.lens] || esc(n.lens)}</span>
+          <span class="pill" title="${esc(TYPE_TITLE[n.type] || n.type)}">${TYPE_TXT[n.type] || esc(n.type)}</span>
+          <span class="pill st-${esc(n.status)}" title="${esc(n.status)}">${STATUS_TXT[n.status] || esc(n.status)}</span>
+          <span class="score" title="優先分 = 影響 × 可能性 ÷ 驗證成本,越高越先驗">▲${sc}</span>
+          ${ev ? `<span class="ev">📎 ${ev} 證據</span>` : ""}
+        </div>
+      </div>
+    </div>
+    ${kids.length ? `<ul>${kids.map(k => nodeHTML(k, childrenMap)).join("")}</ul>` : ""}
+  </li>`;
+}
+
+function renderTree(st) {
+  const ns = st.nodes || [];
+  const c = ns.filter(n => n.status === "confirmed").length;
+  const r = ns.filter(n => n.status === "refuted").length;
+  const o = ns.filter(n => n.status === "open").length;
+  document.getElementById("sumTree").innerHTML =
+    `🗺 問題地圖 <span class="faint">Issue Tree</span> · ${ns.length} 個節點${ns.length ? `(${c} 成立 / ${r} 不成立 / ${o} 待驗)` : ""}`;
+  const map = {};
+  ns.forEach(n => { (map[n.parent] = map[n.parent] || []).push(n); });
+  Object.values(map).forEach(arr => arr.sort((a, b) => score(b.priority) - score(a.priority)));
+  const roots = map[null] || map["null"] || [];
+  document.getElementById("bodyTree").innerHTML = roots.length
+    ? roots.map(rt => nodeHTML(rt, map)).join("")
+    : emptyCTA("問題地圖還是空的。對 Claude 說:", "幫我把這個決策拆成幾條可驗證的猜測。");
+}
+
+function renderKanban(st) {
+  const ns = st.nodes || [];
+  const o = ns.filter(n => n.status === "open").length;
+  const t = ns.filter(n => n.status === "testing").length;
+  const settled = ns.filter(n => n.status === "confirmed" || n.status === "refuted").length;
+  document.getElementById("sumKanban").textContent = `📊 驗證進度 · 待驗 ${o} · 驗證中 ${t} · 已裁決 ${settled}`;
+  const body = document.getElementById("bodyKanban");
+  if (!ns.length) {
+    body.innerHTML = `<div class="empty">等問題地圖長出來,這裡會顯示每條猜測驗到哪了。</div>`;
+    return;
+  }
+  const cols = [["open", "待驗證"], ["testing", "驗證中"], ["confirmed", "✓ 成立"], ["refuted", "✗ 不成立"]];
+  body.innerHTML = `<div class="kanban">` + cols.map(([k, label]) => {
+    const items = ns.filter(n => n.status === k).sort((a, b) => score(b.priority) - score(a.priority));
+    return `<div class="col k-${k}"><h3><span>${label}</span><span>${items.length}</span></h3>
+      ${items.map(n => `<div class="kcard"><span class="kid">${esc(n.id)}</span> ${esc(n.label)} <span class="score" title="優先分 = 影響 × 可能性 ÷ 驗證成本,越高越先驗">▲${score(n.priority)}</span></div>`).join("") || "<div class='empty'>–</div>"}
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+function renderInsights(st) {
+  const ins = st.insights || [];
+  document.getElementById("sumInsights").innerHTML = `💡 目前的結論 <span class="faint">Insights</span> · ${ins.length} 條`;
+  document.getElementById("bodyInsights").innerHTML = ins.length ? ins.map(i => `
+    <div class="insight">
+      <div class="finding">${esc(i.finding)}</div>
+      <div class="iwhy"><b>所以呢:</b>${esc(i.why)}</div>
+      <div class="imag"><b>影響有多大:</b>${esc(i.magnitude)}${i.fromNodes && i.fromNodes.length ? ` <span class="from">· 來自 ${i.fromNodes.map(esc).join(", ")}</span>` : ""}</div>
+    </div>`).join("")
+    : emptyCTA("還沒收出結論。等 2 條以上猜測有了裁決,對 Claude 說:", "幫我把目前驗完的發現收斂成結論,每條都要講『所以呢』。");
+}
+
+function renderDecision(st) {
+  const d = st.decision || {};
+  const opts = d.options || [];
+  document.getElementById("sumDecision").textContent = d.chosen
+    ? `⚖ 選項與決定 · 已決定:${cut(d.chosen, 20)}`
+    : (opts.length ? `⚖ 選項與決定 · 評估中(${opts.length} 個選項)` : `⚖ 選項與決定 · 還沒開始`);
+  let html = "";
+  if (opts.length) {
+    html += `<div class="tablewrap"><table class="opts">
+      <tr><th>選項</th><th title="取捨 tradeoffs">要付出的代價</th><th title="預期影響 expectedImpact">預期效果</th><th title="風險/前提 risks">風險與前提</th></tr>` +
+      opts.map(o => `<tr class="${o.label === d.chosen ? "chosen" : ""}"><td>${esc(o.label)}${o.label === d.chosen ? ` <span class="chosen-tag">✓ 已選</span>` : ""}</td><td>${esc(o.tradeoffs)}</td><td>${esc(o.expectedImpact)}</td><td>${esc(o.risks)}</td></tr>`).join("") +
+      `</table></div>`;
+  } else {
+    html += emptyCTA("還沒列選項。對 Claude 說:", "根據目前的發現,幫我列 2–3 個選項,各自的代價和風險。");
+  }
+  if (d.nextSteps && d.nextSteps.length) {
+    html += `<div class="nextsteps"><div class="ns-title">接下來誰做什麼</div>` +
+      d.nextSteps.map(s => `<div class="step"><span class="who">${esc(s.who)}</span><span>${esc(s.what)}</span><span class="when">${esc(s.when)}</span></div>`).join("") + `</div>`;
+  }
+  document.getElementById("bodyDecision").innerHTML = html;
+}
+
+function renderTimeline(st) {
+  const tl = (st.timeline || []).slice().reverse();
+  document.getElementById("sumTimeline").textContent = tl.length
+    ? `🧾 思考歷程 · ${tl.length} 筆 · 最新:${cut(tl[0].detail, 30)}`
+    : `🧾 思考歷程 · 0 筆`;
+  document.getElementById("bodyTimeline").innerHTML = tl.length ? tl.map(e => `
+    <div class="tl t-${esc(e.type)}">
+      <span class="tt">${esc((e.ts || "").replace("T", " ").slice(0, 16))}</span>
+      <span class="tg" title="${esc(e.type)}">${TL_TXT[e.type] || esc(e.type)}</span>${esc(e.detail)}
+    </div>`).join("")
+    : `<div class="empty">你和 Claude 的每一步(包括中途插話、改方向)都會記在這裡。</div>`;
+}
+
+// 預設展開 = f(當前 phase)。使用者手動開合在當頁有效;
+// 狀態檔更新觸發重繪時回到 f(新狀態) – 新狀態 = 新焦點,屬刻意行為。
+function applyOpenState(st) {
+  const want = OPEN_BY_PHASE[st.phase] || [];
+  PANEL_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.open = want.includes(id);
+  });
+}
+
+function render(st) {
+  renderHeader(st); renderJourney(st); renderHero(st); renderFlags(st);
+  renderFrame(st); renderTree(st); renderKanban(st);
+  renderInsights(st); renderDecision(st); renderTimeline(st);
+  applyOpenState(st);
+  document.title = ((st.session && st.session.title) || "決策迭代器") + " · Decision Iterator";
+}
+
+function applyState(st) {
+  const stamp = st.session && st.session.updatedAt;
+  if (stamp && stamp === lastStamp) return;
+  lastStamp = stamp;
+  render(st);
+}
+
+async function poll() {
+  try {
+    const r = await fetch("./session-state.json", { cache: "no-store" });
+    if (!r.ok) throw 0;
+    const st = await r.json();
+    setLive(true); applyState(st);
+  } catch (e) { setLive(false); }
+}
+
+function setLive(on) {
+  document.getElementById("liveDot").className = "dot" + (on ? " on" : "");
+  document.getElementById("liveTxt").textContent = on ? "即時同步中" : "手動模式";
+  document.getElementById("refreshBtn").className = "refresh" + (on ? "" : " primary");
+}
+
+// 快照模式(file:// 雙擊)下 fetch 必失敗 → 直接重載頁面,
+// 載入 render.mjs 重生的最新內嵌狀態(修復「按了沒反應」的舊 bug)
+async function manualRefresh() {
+  lastStamp = null;
+  try {
+    const r = await fetch("./session-state.json", { cache: "no-store" });
+    if (!r.ok) throw 0;
+    const st = await r.json();
+    setLive(true); applyState(st);
+  } catch (e) { location.reload(); }
+}
+
+// ===== 複製機制(navigator.clipboard → execCommand fallback,file:// 相容) =====
+function legacyCopy(txt) {
+  const ta = document.createElement("textarea");
+  ta.value = txt;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+function copyText(txt) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(txt).then(() => true).catch(() => legacyCopy(txt));
+  }
+  return Promise.resolve(legacyCopy(txt));
+}
+function flashCopied(btn) {
+  if (btn.dataset.busy) return;
+  btn.dataset.busy = "1";
+  const orig = btn.innerHTML;
+  btn.classList.add("copied");
+  btn.innerHTML = btn.classList.contains("chip")
+    ? "<span class='ci'>✓</span><span class='ct'>已複製,貼給 Claude</span>"
+    : "✓";
+  setTimeout(() => { btn.innerHTML = orig; btn.classList.remove("copied"); delete btn.dataset.busy; }, 1600);
+}
+document.addEventListener("click", e => {
+  const btn = e.target.closest("button[data-copy]");
+  if (!btn) return;
+  copyText(btn.getAttribute("data-copy")).then(ok => { if (ok) flashCopied(btn); });
+});
+
+// ===== Modal(onboarding + 怎麼用) =====
+function showModal(id) {
+  const m = document.getElementById(id);
+  m.hidden = false;
+  const card = m.querySelector(".modal");
+  if (card) card.focus();
+}
+function hideModal(id) {
+  const m = document.getElementById(id);
+  if (!m || m.hidden) return;
+  m.hidden = true;
+  if (id === "onboardMask") {
+    try { localStorage.setItem("di.onboarded.v1", "1"); } catch (e) {}
+  }
+}
+(function initModals() {
+  ["onboardMask", "helpMask"].forEach(id => {
+    document.getElementById(id).addEventListener("click", e => {
+      if (e.target === e.currentTarget) hideModal(id);
+    });
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { hideModal("helpMask"); hideModal("onboardMask"); }
+  });
+  // localStorage 讀取失敗(隱私模式等)視同已看過 – ❓ 永遠可重看
+  let seen = "1";
+  try { seen = localStorage.getItem("di.onboarded.v1"); } catch (e) { seen = "1"; }
+  if (!seen) showModal("onboardMask");
+})();
+
+// 啟動:先用內嵌快照(保證雙擊可開),再嘗試即時連線(需簡易伺服器);
+// 沿用 2 秒輪詢與 applyState 的 updatedAt 比對,不重繪未變的狀態
+applyState(EMBEDDED_STATE);
+poll();
+setInterval(poll, 2000);
+</script>
+</body>
+</html>
