@@ -1,5 +1,5 @@
-// Storage adapter selector — driven by STORAGE env var (fs | supabase)
-// @supabase/supabase-js is an optional dependency (only needed when STORAGE=supabase).
+// Storage adapter selector — driven by STORAGE env var (fs | supabase | pg)
+// @supabase/supabase-js and pg are optional dependencies (only needed when STORAGE matches).
 import type { StorageAdapter } from "./types";
 import { fsAdapter } from "./fs";
 
@@ -16,6 +16,11 @@ export function getStorage(): StorageAdapter {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { supabaseAdapter } = require("./supabase") as { supabaseAdapter: StorageAdapter };
     _adapter = supabaseAdapter;
+  } else if (mode === "pg") {
+    // pgAdapter uses pg (optional dep) + DATABASE_URL
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { pgAdapter } = require("./pg") as { pgAdapter: StorageAdapter };
+    _adapter = pgAdapter;
   } else {
     _adapter = fsAdapter;
   }
