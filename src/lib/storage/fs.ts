@@ -3,7 +3,6 @@
 // Atomic write via tmp file + rename to avoid partial reads.
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
 import type { StorageAdapter } from "./types";
 import type { SessionListItem, SessionState, Lens } from "../schema";
 import { createSessionState } from "../session";

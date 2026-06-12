@@ -2,6 +2,7 @@
 // /s/[id] — Chat page (client component, streaming, mobile-first, fixed bottom input)
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 interface Message {
   role: "user" | "assistant";
@@ -130,13 +131,13 @@ export default function ChatPage() {
         style={{ background: "var(--panel)", borderColor: "var(--border)" }}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <a
+          <Link
             href="/"
             className="text-sm shrink-0 transition-opacity hover:opacity-70"
             style={{ color: "var(--txt-dim)" }}
           >
             ←
-          </a>
+          </Link>
           <span className="text-sm font-medium truncate" style={{ color: "var(--accent)" }}>
             決策迭代器
           </span>

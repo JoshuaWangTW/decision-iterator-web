@@ -1,5 +1,3 @@
-import type { SessionState } from "../schema";
-
 export interface ToolUseBlock {
   type: "tool_use";
   id: string;

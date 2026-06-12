@@ -11,7 +11,8 @@ import type { ContentBlock, ToolUseBlock } from "@/lib/llm/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DEFAULT_MODEL = "claude-sonnet-4-6";
+// 預設模型可由 env 覆寫(部署時設定);未設則用 Sonnet。前端仍可在 body.model 指定。
+const DEFAULT_MODEL = process.env.MODEL || "claude-sonnet-4-6";
 
 // Tool definition with cache_control on the last (only) tool — per ADR caching spec
 const TOOLS = [

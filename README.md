@@ -56,7 +56,7 @@ npm run dev
 | `/` | Session 列表 + 新建表單 |
 | `/s/[id]` | 聊天頁（串流，client component） |
 | `/d/[id]/dashboard.html` | 看板頁（靜態 HTML，可獨立分享或 iframe 嵌入） |
-| `/d/[id]/session-state.json` | 狀態 JSON（看板每 3 秒輪詢，no-store） |
+| `/d/[id]/session-state.json` | 狀態 JSON（看板每 2 秒輪詢，no-store） |
 
 看板 URL 可直接複製給他人瀏覽，不需登入。
 
