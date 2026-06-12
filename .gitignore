@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# decision-iterator session 資料(使用者決策內容,不入版控)
+/.data/
