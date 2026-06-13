@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: 安裝依賴
+        run: npm ci
+
+      - name: 型別檢查
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Mock E2E + LINE webhook E2E(無金鑰,確定性假模型)
+        env:
+          LLM: mock
+          STORAGE: fs
+          LINE_CHANNEL_SECRET: test-secret-123
+        run: |
+          npm run dev > dev-ci.log 2>&1 &
+          DEV_PID=$!
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ || true)
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+          node scripts/e2e-mock.mjs
+          node scripts/line-e2e.mjs
+          kill $DEV_PID 2>/dev/null || true
