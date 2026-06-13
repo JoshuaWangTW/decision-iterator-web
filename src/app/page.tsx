@@ -1,27 +1,69 @@
-// / — Session list + new session (mobile-first, server component + server action)
-// 注意:本檔不可在頂層放 "use server"(那會要求所有 export 都是 async 函式,
-// 與 `export const dynamic` 衝突);server action 由 createSession 內的
-// 函式級 "use server" directive 標記即可。
-import { redirect } from "next/navigation";
-import { getStorage } from "@/lib/storage";
-import type { SessionListItem } from "@/lib/schema";
+"use client";
+// / — Session list + new session(mobile-first)
+// 改用 client component + /api/sessions(POST 建立 / GET 列表),
+// 取代 server action <form action={fn}> —— 後者在 Next.js 16 + Turbopack dev
+// 下會回非預期回應("An unexpected response was received from the server")。
+// API route 路徑與 mock E2E 驗證的一致,穩定可用。
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-// production(next start)下也要每次讀最新 session 列表,不可 build 時凍結
-export const dynamic = "force-dynamic";
-
-async function createSession(formData: FormData): Promise<never> {
-  "use server";
-  const title = (formData.get("title") as string | null)?.trim() ?? "";
-  const lens = (formData.get("lens") as string | null) ?? "business";
-  if (!title) redirect("/");
-  const storage = getStorage();
-  const { id } = await storage.create({ title, lens });
-  redirect(`/s/${id}`);
+interface SessionListItem {
+  id: string;
+  title: string;
+  updatedAt: string;
 }
 
-export default async function HomePage() {
-  const storage = getStorage();
-  const sessions: SessionListItem[] = await storage.list();
+export default function HomePage() {
+  const router = useRouter();
+  const [sessions, setSessions] = useState<SessionListItem[]>([]);
+  const [title, setTitle] = useState("");
+  const [lens, setLens] = useState("business");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
+
+  // 載入既有 session 列表
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/sessions")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: SessionListItem[]) => {
+        if (!cancelled) setSessions(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setSessions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const createSession = useCallback(async () => {
+    const t = title.trim();
+    if (!t || creating) return;
+    setCreating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: t, lens }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { id } = (await res.json()) as { id: string };
+      router.push(`/s/${id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "建立失敗，請再試一次。");
+      setCreating(false);
+    }
+  }, [title, lens, creating, router]);
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      createSession();
+    }
+  }
 
   return (
     <main className="flex-1 mx-auto w-full max-w-lg px-4 py-8 flex flex-col gap-6">
@@ -35,7 +77,7 @@ export default async function HomePage() {
         </p>
       </header>
 
-      {/* New session form */}
+      {/* New session */}
       <section
         className="rounded-xl p-4 flex flex-col gap-3 border"
         style={{ background: "var(--panel)", borderColor: "var(--border)" }}
@@ -43,13 +85,16 @@ export default async function HomePage() {
         <h2 className="text-sm font-medium" style={{ color: "var(--txt-dim)" }}>
           開新決策
         </h2>
-        <form action={createSession} className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <input
             name="title"
             type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="我的決策是…"
-            required
-            className="w-full rounded-lg px-3 py-2 text-sm outline-none border focus:border-[--accent] transition-colors"
+            disabled={creating}
+            className="w-full rounded-lg px-3 py-2 text-sm outline-none border transition-colors"
             style={{
               background: "var(--panel-2)",
               borderColor: "var(--border)",
@@ -59,7 +104,9 @@ export default async function HomePage() {
           <div className="flex gap-2 items-center">
             <select
               name="lens"
-              defaultValue="business"
+              value={lens}
+              onChange={(e) => setLens(e.target.value)}
+              disabled={creating}
               className="rounded-lg px-3 py-2 text-sm flex-1 border outline-none"
               style={{
                 background: "var(--panel-2)",
@@ -72,14 +119,21 @@ export default async function HomePage() {
               <option value="hybrid">混合鏡頭</option>
             </select>
             <button
-              type="submit"
-              className="rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
+              type="button"
+              onClick={createSession}
+              disabled={creating || !title.trim()}
+              className="rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
               style={{ background: "var(--accent)", color: "var(--bg)" }}
             >
-              開始
+              {creating ? "建立中…" : "開始"}
             </button>
           </div>
-        </form>
+          {error && (
+            <p className="text-xs" style={{ color: "var(--refuted)" }}>
+              {error}
+            </p>
+          )}
+        </div>
       </section>
 
       {/* Session list */}
@@ -91,7 +145,7 @@ export default async function HomePage() {
           <ul className="flex flex-col gap-2">
             {sessions.map((s) => (
               <li key={s.id}>
-                <a
+                <Link
                   href={`/s/${s.id}`}
                   className="flex flex-col gap-0.5 rounded-xl p-4 border transition-opacity hover:opacity-80"
                   style={{ background: "var(--panel)", borderColor: "var(--border)" }}
@@ -105,7 +159,7 @@ export default async function HomePage() {
                       minute: "2-digit",
                     })}
                   </span>
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
