@@ -58,6 +58,16 @@ export default function HomePage() {
     }
   }, [title, lens, creating, router]);
 
+  const deleteSession = useCallback(async (id: string) => {
+    if (!confirm("刪除這個決策？看板與對話記錄都會一併消失，無法復原。")) return;
+    const res = await fetch(`/api/s/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+    } else {
+      setError("刪除失敗，請再試一次。");
+    }
+  }, []);
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -144,11 +154,14 @@ export default function HomePage() {
           </h2>
           <ul className="flex flex-col gap-2">
             {sessions.map((s) => (
-              <li key={s.id}>
+              <li
+                key={s.id}
+                className="flex items-center gap-2 rounded-xl border pr-2"
+                style={{ background: "var(--panel)", borderColor: "var(--border)" }}
+              >
                 <Link
                   href={`/s/${s.id}`}
-                  className="flex flex-col gap-0.5 rounded-xl p-4 border transition-opacity hover:opacity-80"
-                  style={{ background: "var(--panel)", borderColor: "var(--border)" }}
+                  className="flex flex-col gap-0.5 p-4 flex-1 min-w-0 transition-opacity hover:opacity-80"
                 >
                   <span className="text-sm font-medium truncate">{s.title}</span>
                   <span className="text-xs" style={{ color: "var(--txt-dim)" }}>
@@ -160,6 +173,15 @@ export default function HomePage() {
                     })}
                   </span>
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => deleteSession(s.id)}
+                  aria-label={`刪除 ${s.title}`}
+                  className="shrink-0 rounded-lg px-3 py-2 text-xs transition-opacity hover:opacity-70"
+                  style={{ color: "var(--txt-dim)" }}
+                >
+                  刪除
+                </button>
               </li>
             ))}
           </ul>

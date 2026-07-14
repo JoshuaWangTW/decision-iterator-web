@@ -112,4 +112,46 @@ const htmlBody = await htmlRes.text();
 assert(htmlBody.includes("EMBEDDED_STATE") || htmlBody.includes(sessionId), "dashboard.html contains state data");
 assert(htmlBody.includes("<!DOCTYPE html>"), "dashboard.html is valid HTML");
 
+// --- f) 對話歷史:第二輪後 chatLog 應累積成 4 筆,順序正確 ---
+console.log("\n--- f) Chat history persists across turns ---");
+const SECOND = "等等，我想到現金流才是重點";
+const msgRes2 = await fetch(`${BASE}/api/s/${sessionId}/message`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ text: SECOND }),
+});
+assert(msgRes2.ok, `second POST message status ${msgRes2.status}`);
+await readStream(msgRes2);
+
+const histRes = await fetch(`${BASE}/api/s/${sessionId}`);
+assert(histRes.ok, `GET /api/s/${sessionId} status ${histRes.status}`);
+const hist = await histRes.json();
+const log = hist.messages;
+assert(Array.isArray(log), "history payload has messages array");
+assert(log.length === 4, `chatLog has 4 entries after 2 turns (got ${log.length})`);
+assert(
+  log.map((m) => m.role).join(",") === "user,assistant,user,assistant",
+  "chatLog roles alternate user/assistant"
+);
+assert(log[2].text === SECOND, "second user turn stored verbatim");
+assert(log[1].text.length > 0 && log[3].text.length > 0, "assistant replies stored");
+
+// chatLog 必須活過模型的 update_session_state 寫回(伺服器端擁有的欄位)
+const stateAfter = JSON.parse(readFileSync(stateFile, "utf8"));
+assert(
+  Array.isArray(stateAfter.chatLog) && stateAfter.chatLog.length === 4,
+  "chatLog survives the model's full-state tool write"
+);
+
+// --- g) 刪除 session ---
+console.log("\n--- g) Delete session ---");
+const delRes = await fetch(`${BASE}/api/s/${sessionId}`, { method: "DELETE" });
+assert(delRes.status === 204, `DELETE /api/s/${sessionId} returns 204 (got ${delRes.status})`);
+assert(!existsSync(stateFile), "session state file removed from disk");
+const goneRes = await fetch(`${BASE}/api/s/${sessionId}`);
+assert(goneRes.status === 404, `GET deleted session returns 404 (got ${goneRes.status})`);
+const listRes = await fetch(`${BASE}/api/sessions`);
+const list = await listRes.json();
+assert(!list.some((s) => s.id === sessionId), "deleted session gone from list");
+
 console.log("\n--- All assertions passed ---\n");

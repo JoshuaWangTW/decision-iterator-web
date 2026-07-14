@@ -34,5 +34,6 @@ export function createSessionState(
     decision: { options: [], chosen: "", nextSteps: [] },
     timeline: [{ ts: now, type: "phase-change", detail: "建立 session，進入 FRAME 階段" }],
     redFlags: [],
+    chatLog: [],
   };
 }

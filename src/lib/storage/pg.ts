@@ -105,4 +105,10 @@ export const pgAdapter: StorageAdapter = {
       ]
     );
   },
+
+  async delete(id: string): Promise<void> {
+    assertSafeId(id);
+    const pool = getPool();
+    await pool.query("DELETE FROM sessions WHERE id = $1", [id]);
+  },
 };

@@ -92,6 +92,12 @@ export type Phase =
   | "communicate"
   | "iterate";
 
+export interface ChatMessage {
+  ts: string;
+  role: "user" | "assistant";
+  text: string;
+}
+
 export interface SessionState {
   schemaVersion: "1.0";
   session: SessionMeta;
@@ -103,6 +109,8 @@ export interface SessionState {
   decision: Decision;
   timeline: TimelineEntry[];
   redFlags: string[];
+  /** 對話記錄。伺服器端擁有：模型透過工具寫回的 state 不含此欄，由編排層補回。 */
+  chatLog?: ChatMessage[];
 }
 
 export interface SessionListItem {

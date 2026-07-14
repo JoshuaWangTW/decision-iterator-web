@@ -53,12 +53,22 @@ npm run dev
 
 | URL | 說明 |
 |-----|------|
-| `/` | Session 列表 + 新建表單 |
-| `/s/[id]` | 聊天頁（串流，client component） |
+| `/` | Session 列表 + 新建表單（可刪除） |
+| `/s/[id]` | 聊天頁（串流，client component；重整後回填對話歷史） |
 | `/d/[id]/dashboard.html` | 看板頁（靜態 HTML，可獨立分享或 iframe 嵌入） |
 | `/d/[id]/session-state.json` | 狀態 JSON（看板每 2 秒輪詢，no-store） |
 
+API：`GET/POST /api/sessions`、`GET/DELETE /api/s/[id]`、`POST /api/s/[id]/message`（串流）。
+
 看板 URL 可直接複製給他人瀏覽，不需登入。
+
+---
+
+## 對話歷史
+
+每輪對話存在 session state 的 `chatLog` 欄位，並在下一輪以真正的 user/assistant 輪次送進模型 context（預設帶最近 20 輪）。這是多輪推演的前提——少了它，模型每輪都只看得到狀態 JSON，答不出「我剛剛說了什麼」。
+
+`chatLog` 是**伺服器端擁有**的欄位：模型透過 `update_session_state` 寫回的是整份狀態、不含 `chatLog`，由 `src/lib/orchestrate.ts` 補回，避免歷史被覆蓋。網頁與 LINE 共用同一份歷史。
 
 ---
 

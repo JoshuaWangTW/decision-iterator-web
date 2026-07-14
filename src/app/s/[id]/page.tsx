@@ -23,8 +23,27 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [model, setModel] = useState(MODELS[0].value);
   const [loading, setLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 回填對話歷史 — 沒有這段，重整頁面訊息就全消失
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/s/${id}`)
+      .then((r) => (r.ok ? r.json() : { messages: [] }))
+      .then((data: { messages?: Message[] }) => {
+        if (cancelled) return;
+        setMessages(data.messages ?? []);
+        setHydrated(true);
+      })
+      .catch(() => {
+        if (!cancelled) setHydrated(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -173,7 +192,7 @@ export default function ChatPage() {
 
       {/* Message list */}
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
-        {messages.length === 0 && (
+        {hydrated && messages.length === 0 && (
           <div
             className="text-center text-sm py-12 leading-relaxed"
             style={{ color: "var(--txt-dim)" }}

@@ -72,4 +72,10 @@ export const supabaseAdapter: StorageAdapter = {
     });
     if (error) throw new Error(`Supabase write error: ${error.message}`);
   },
+
+  async delete(id: string): Promise<void> {
+    const sb = getClient();
+    const { error } = await sb.from("sessions").delete().eq("id", id);
+    if (error) throw new Error(`Supabase delete error: ${error.message}`);
+  },
 };

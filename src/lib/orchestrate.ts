@@ -4,11 +4,17 @@ import { getStorage } from "@/lib/storage";
 import { getLLM } from "@/lib/llm";
 import { SYSTEM_PROMPT } from "@/lib/system-prompt";
 import { lintAndFill, normalizeScores } from "@/lib/render";
-import type { SessionState } from "@/lib/schema";
+import type { SessionState, ChatMessage } from "@/lib/schema";
 import type { ContentBlock, ToolUseBlock } from "@/lib/llm/types";
 
 // 預設模型可由 env 覆寫;呼叫端也可傳入 model 參數。
 const DEFAULT_MODEL = process.env.MODEL || "claude-sonnet-4-6";
+
+// 白名單:呼叫端(前端 POST body)傳來的 model 不可直通 Anthropic API。
+export const ALLOWED_MODELS = ["claude-sonnet-4-6", "claude-opus-4-8"] as const;
+
+// 帶進 context 的歷史訊息上限(20 輪對話)。超過只截尾,狀態 JSON 仍保有完整脈絡。
+const MAX_CHAT_CONTEXT = 40;
 
 // Tool definition with cache_control on the last (only) tool — per ADR caching spec
 export const TOOLS = [
@@ -64,10 +70,14 @@ export async function runOrchestration({
 }: OrchestrationParams): Promise<string> {
   const storage = getStorage();
   const llm = getLLM();
-  const resolvedModel = model ?? DEFAULT_MODEL;
+  const resolvedModel =
+    model && (ALLOWED_MODELS as readonly string[]).includes(model)
+      ? model
+      : DEFAULT_MODEL;
 
   // 讀取既有 state 注入 context
   const existingState = await storage.read(id);
+  const priorChat = existingState?.chatLog ?? [];
 
   // Build initial messages.
   // State is injected as a prior user/assistant exchange so both real and mock
@@ -78,14 +88,23 @@ export async function runOrchestration({
   }> = [];
 
   if (existingState) {
+    // 狀態 JSON 不含 chatLog:對話歷史下面會以真正的 user/assistant 輪次帶入,
+    // 重複塞進 JSON 只會浪費 token。
+    const stateForPrompt: Partial<SessionState> = { ...existingState };
+    delete stateForPrompt.chatLog;
     messages.push({
       role: "user",
-      content: `<session_state>\n${JSON.stringify(existingState, null, 2)}\n</session_state>`,
+      content: `<session_state>\n${JSON.stringify(stateForPrompt, null, 2)}\n</session_state>`,
     });
     messages.push({
       role: "assistant",
       content: "已載入 session 狀態，繼續推進。",
     });
+  }
+
+  // 對話歷史 — 沒有這段，模型每輪都是失憶的，只能從狀態 JSON 反推脈絡。
+  for (const m of priorChat.slice(-MAX_CHAT_CONTEXT)) {
+    messages.push({ role: m.role, content: m.text });
   }
 
   messages.push({
@@ -99,6 +118,9 @@ export async function runOrchestration({
     finalText += chunk;
     onText?.(chunk);
   };
+
+  // 模型寫回的最新狀態;沒呼叫工具時退回既有狀態。
+  let latestState: SessionState | null = existingState;
 
   let loop = 0;
   const MAX_LOOPS = 6;
@@ -136,7 +158,11 @@ export async function runOrchestration({
           if (!rawState.session) rawState.session = {};
           (rawState.session as Record<string, unknown>).updatedAt = new Date().toISOString();
           normalizeScores(rawState as unknown as SessionState);
-          await storage.write(id, rawState as unknown as SessionState);
+          // chatLog 是伺服器端擁有的欄位:模型的回傳不含它,直接寫入會把歷史抹掉。
+          const next = rawState as unknown as SessionState;
+          next.chatLog = priorChat;
+          await storage.write(id, next);
+          latestState = next;
         }
         toolResults.push({
           type: "tool_result" as const,
@@ -149,6 +175,16 @@ export async function runOrchestration({
 
     // tool_result goes in role:user content (Anthropic API requirement)
     messages.push({ role: "user", content: toolResults });
+  }
+
+  // 收尾:把這一輪的 user/assistant 追加進 chatLog 並持久化。
+  // 沒有這步，聊天頁重整就失憶、模型下一輪也看不到這輪講了什麼。
+  if (latestState) {
+    const ts = new Date().toISOString();
+    const turn: ChatMessage[] = [{ ts, role: "user", text: userText }];
+    if (finalText) turn.push({ ts, role: "assistant", text: finalText });
+    latestState.chatLog = [...priorChat, ...turn];
+    await storage.write(id, latestState);
   }
 
   return finalText;

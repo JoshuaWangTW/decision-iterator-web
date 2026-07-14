@@ -82,4 +82,9 @@ export const fsAdapter: StorageAdapter = {
     ensureDir(dir);
     writeAtomic(statePath(id), JSON.stringify(state, null, 2));
   },
+
+  async delete(id: string): Promise<void> {
+    // sessionDir 已驗 id;force 讓不存在的路徑不拋錯
+    fs.rmSync(sessionDir(id), { recursive: true, force: true });
+  },
 };
