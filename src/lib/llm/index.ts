@@ -13,6 +13,11 @@ export function getLLM(): LLMRunner {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { mockRunner } = require("./mock");
     _runner = mockRunner as LLMRunner;
+  } else if (mode === "codex") {
+    // 用本機 codex CLI 吃 ChatGPT 訂閱 token(僅單機/本機,需已登入 codex）
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { codexRunner } = require("./codex");
+    _runner = codexRunner as LLMRunner;
   } else {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { anthropicRunner } = require("./anthropic");

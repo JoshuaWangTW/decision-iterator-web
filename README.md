@@ -74,6 +74,30 @@ npm run dev
 
 > **成本提醒**：真模型按 token 計費。System prompt 與工具定義已啟用 prompt caching（`cache_control: ephemeral`），跨請求重複部分可節省約 80-90% 輸入成本。帳單查詢：[https://console.anthropic.com/settings/billing](https://console.anthropic.com/settings/billing)
 
+### 模式 C：真大腦（OpenAI / ChatGPT 訂閱，吃訂閱 token）
+
+用本機已登入的 **codex CLI** 當大腦，走 ChatGPT 訂閱額度，**不走 API 計費**。適合已是 ChatGPT Plus/Pro 訂閱者。
+
+```powershell
+# 前提：本機已安裝並登入 codex CLI（~/.codex/auth.json 存在）
+#   npm install -g @openai/codex   →   codex login
+
+# 編輯 .env.local：
+# LLM=codex
+# STORAGE=fs
+# CODEX_MODEL=            ← 留空用 codex 預設模型（最強，如 gpt-5.6-sol）；要降就填，如 gpt-5.1
+
+npm run dev
+```
+
+運作方式：`codex exec --output-schema` 強制模型吐出 `{ reply, state }` 結構化 JSON，`src/lib/llm/codex.ts` 解析後接回既有的 tool-use 編排迴圈——聊天頁、看板、對話歷史全部照舊。
+
+> **限制（重要）**：模式 C 靠本機 codex 二進位檔＋登入態，**只能單機/本機跑**。部署到 Vercel 等無 codex、無 ChatGPT 登入的環境會失敗——那裡請用模式 B（Anthropic API）。
+>
+> **模型預設最強、可往下降**：不設 `CODEX_MODEL` 就用 codex `~/.codex/config.toml` 的模型（你的最強預設）；要省 token 或加速就在 `.env.local` 設較低模型。
+>
+> **成本**：吃 ChatGPT 訂閱額度而非 API 帳單，但 codex 每次呼叫本身開銷較大（含 codex 自己的 system prompt，單輪約 2 萬 token 起跳）。
+
 ---
 
 ## 路由說明
@@ -177,10 +201,11 @@ vercel --prod
 
 ```
 ANTHROPIC_API_KEY=sk-ant-...
-LLM=mock
+LLM=mock              # mock | real（Anthropic）| codex（ChatGPT 訂閱）
 STORAGE=fs
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+CODEX_MODEL=          # 僅 LLM=codex；留空=最強預設，填低模型可往下降
 ```
 
 （即 `.env.local.example` 的內容）
@@ -192,7 +217,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 - Framework：Next.js 16 + React 19（App Router）
 - 語言：TypeScript strict
 - 樣式：Tailwind CSS 4
-- LLM：Anthropic SDK（`@anthropic-ai/sdk`）
+- LLM：Anthropic SDK（`@anthropic-ai/sdk`）或本機 codex CLI（吃 ChatGPT 訂閱，`src/lib/llm/codex.ts`）
 - 儲存：fs adapter（本機）或 Supabase adapter（生產）
 - 串流：`ReadableStream` + `getReader()`（NodeJS runtime，不走 edge）
 
