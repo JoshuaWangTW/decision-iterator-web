@@ -10,8 +10,8 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.104.1",
-    "next": "16.2.9",
+    "@anthropic-ai/sdk": "^0.112.3",
+    "next": "16.2.10",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   },
@@ -22,12 +22,12 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
     "typescript": "^6"
   },
   "optionalDependencies": {
-    "@supabase/supabase-js": "^2.108.1",
-    "pg": "^8.13.1"
+    "@supabase/supabase-js": "^2.110.7",
+    "pg": "^8.22.0"
   }
 }
